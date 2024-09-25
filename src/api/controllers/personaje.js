@@ -33,8 +33,36 @@ const postPersonaje = async (req, res, next) => {
 const updatePersonaje = async (req, res, next) => {
   try {
     const { id } = req.params
-    
-    const update= await Personaje.findByIdAndUpdate(id,{$set:req.body}, {new:true}).populate("juego")
+    const oldPersonaje = await Personaje.findById(id)
+
+    if (req.body.juego) {
+      const oldJuegos = oldPersonaje.juego || []
+      const newJuegos = req.body.juego
+      const juegoDuplitate = await Personaje.findOne({ juego: newJuegos })
+
+      if (juegoDuplitate) {
+        return res.status(400).json('El juego ya esta incluido')
+      }
+
+      const JuegosActualizados = [].concat(newJuegos, oldJuegos)
+      const up = await Personaje.findByIdAndUpdate(
+        id,
+        { juego: JuegosActualizados },
+        {
+          new: true
+        }
+      )
+      return res.status(200).json(up)
+    }
+    const update = await Personaje.findByIdAndUpdate(
+      id,
+      {
+        $set: req.body
+      },
+      {
+        new: true
+      }
+    )
     return res.status(200).json(update)
   } catch (error) {
     return res.status(400).json('Algo ha fallado')
