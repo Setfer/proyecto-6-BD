@@ -32,42 +32,46 @@ const postPersonaje = async (req, res, next) => {
 
 const updatePersonaje = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const oldPersonaje = await Personaje.findById(id)
+    const { id } = req.params;
+    const oldPersonaje = await Personaje.findById(id);
+
+    if (!oldPersonaje) {
+      return res.status(404).json('Personaje no encontrado');
+    }
 
     if (req.body.juego) {
-      const oldJuegos = oldPersonaje.juego || []
-      const newJuegos = req.body.juego
-      const juegoDuplitate = await Personaje.findOne({ juego: newJuegos })
+      const oldJuegos = oldPersonaje.juego || [];
+      const newJuegos = Array.isArray(req.body.juego) ? req.body.juego : [req.body.juego];
 
-      if (juegoDuplitate) {
-        return res.status(400).json('El juego ya esta incluido')
+      const juegosDuplicados = newJuegos.filter(juego => oldJuegos.includes(juego));
+
+      if (juegosDuplicados.length > 0) {
+        return res.status(400).json(`El juego ya está incluido: ${juegosDuplicados.join(', ')}`);
       }
 
-      const JuegosActualizados = [].concat(newJuegos, oldJuegos)
+      const JuegosActualizados = [...new Set([...oldJuegos, ...newJuegos])];
+
       const up = await Personaje.findByIdAndUpdate(
         id,
         { juego: JuegosActualizados },
-        {
-          new: true
-        }
-      )
-      return res.status(200).json(up)
+        { new: true }
+      );
+
+      return res.status(200).json(up);
     }
+    
     const update = await Personaje.findByIdAndUpdate(
       id,
-      {
-        $set: req.body
-      },
-      {
-        new: true
-      }
-    )
-    return res.status(200).json(update)
+      { $set: req.body },
+      { new: true }
+    );
+
+    return res.status(200).json(update);
   } catch (error) {
-    return res.status(400).json('Algo ha fallado')
+    return res.status(500).json('Algo ha fallado');
   }
-}
+};
+
 
 const deletePersonaje = async (req, res, next) => {
   try {
